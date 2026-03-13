@@ -1,0 +1,21 @@
+services:
+
+  pipeline:
+
+    build:
+      context: .
+      dockerfile: Docker/Dockerfile
+
+    container_name: airport-inr-pipeline
+
+    working_dir: ${CONTAINER_WORKDIR}
+
+    volumes:
+      - ${PROJECT_ROOT}:${CONTAINER_WORKDIR}
+      - ${PROJECT_ROOT}/data:/opt/data
+      - ${DOCKER_VOLUMES_ROOT}/airport-inr:/opt/docker-volumes
+
+    environment:
+      - PYTHONPATH=${CONTAINER_WORKDIR}
+
+    tty: true

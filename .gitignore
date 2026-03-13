@@ -6,7 +6,10 @@ __pycache__/
 .env
 
 # Data
-data/
+data/raw/*
+data/processed/*
+!data/raw/.keep
+!data/processed/.keep
 
 # Docker volumes
 docker-volumes/

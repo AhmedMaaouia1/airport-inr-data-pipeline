@@ -1,0 +1,13 @@
+numpy
+pandas
+geopandas
+shapely
+pyproj
+trimesh
+open3d
+pyarrow
+pyyaml
+tqdm
+SQLAlchemy
+mapbox-earcut
+rtree
