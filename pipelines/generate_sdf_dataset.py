@@ -3,10 +3,13 @@ from src.mesh.extrude_buildings import extrude_buildings
 from src.mesh.merge_meshes import merge_meshes
 from src.sdf.sample_points import sample_points
 from src.sdf.compute_sdf import compute_sdf
+from src.core.normalize_coordinates import normalize_points
+from src.sdf.sample_surface import sample_surface
+from src.sdf.sample_near_surface import sample_near_surface
+from src.sdf.sample_free_space import sample_free_space
 
 import numpy as np
 import pandas as pd
-
 
 DB_PATH = "data/raw/openalaqs/LFPO_Project.sqlite"
 
@@ -18,17 +21,32 @@ meshes = extrude_buildings(gdf)
 
 airport_mesh = merge_meshes(meshes)
 
-print("Sampling des points...")
-
 bounds = gdf.total_bounds
 
-points = sample_points(bounds, n_points=20000)
+print("Sampling surface...")
+surface_points = sample_surface(airport_mesh, 5000)
+
+print("Sampling near surface...")
+near_surface_points = sample_near_surface(surface_points)
+
+print("Sampling free space...")
+free_space_points = sample_free_space(bounds, 5000)
+
+points = np.vstack((
+    surface_points,
+    near_surface_points,
+    free_space_points
+))
 
 print("Calcul SDF...")
 
 distances = compute_sdf(airport_mesh, points)
 
-dataset = np.hstack((points, distances.reshape(-1,1)))
+points_normalized, center, scale = normalize_points(points)
+
+distances_normalized = distances / scale
+
+dataset = np.hstack((points_normalized, distances_normalized.reshape(-1,1)))
 
 df = pd.DataFrame(dataset, columns=["x","y","z","s"])
 
@@ -41,3 +59,25 @@ df.to_parquet(
 )
 
 print("Dataset sauvegardé")
+
+print("Center :", center)
+print("Scale :", scale)
+
+# Export du nuage de points pour visualisation
+
+ply_path = "data/processed/orly_sdf_points.ply"
+
+with open(ply_path, "w") as f:
+
+    f.write("ply\n")
+    f.write("format ascii 1.0\n")
+    f.write(f"element vertex {len(points_normalized)}\n")
+    f.write("property float x\n")
+    f.write("property float y\n")
+    f.write("property float z\n")
+    f.write("end_header\n")
+
+    for p in points_normalized:
+        f.write(f"{p[0]} {p[1]} {p[2]}\n")
+
+print("Nuage de points exporté :", ply_path)

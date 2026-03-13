@@ -16,3 +16,7 @@ airport_mesh = merge_meshes(meshes)
 
 print("Vertices :", len(airport_mesh.vertices))
 print("Faces :", len(airport_mesh.faces))
+
+airport_mesh.export("data/processed/orly_mesh.obj")
+
+print("Mesh exporté : data/processed/orly_mesh.obj")
