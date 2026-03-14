@@ -1,0 +1,19 @@
+airport:
+  code: LFPO
+  database_path: data/raw/openalaqs/LFPO_Project.sqlite
+  default_building_height: 15.0
+
+sampling:
+  surface_points: 20000
+  near_surface_noise: 0.02
+  free_space_points: 20000
+
+sdf:
+  chunk_size: 5000
+
+dataset:
+  train_split: 0.9
+
+paths:
+  staging_buildings: data/staging/buildings.parquet
+  processed_root: data/processed

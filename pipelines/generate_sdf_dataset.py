@@ -8,38 +8,67 @@ from src.sdf.sample_free_space import sample_free_space
 from src.sdf.compute_sdf_chunked import compute_sdf_chunked
 
 from src.core.normalize_coordinates import normalize_points
+from src.core.config import load_config
+from src.validation.check_dataset import validate_sdf_dataset
 
 import numpy as np
 import pandas as pd
+import os
+from sklearn.model_selection import train_test_split
+
+from src.core.logging import setup_logger
+
+logger = setup_logger()
+config = load_config()
+
+DB_PATH    = config["airport"]["database_path"]
+AIRPORT_CODE = config["airport"]["code"]
+PATHS      = config["paths"]
+TRAIN_SPLIT = config["dataset"]["train_split"]
+
+OUTPUT_DIR = os.path.join(PATHS["processed_root"], AIRPORT_CODE)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+TRAIN_PATH = os.path.join(OUTPUT_DIR, f"{AIRPORT_CODE}_sdf_train.parquet")
+VAL_PATH = os.path.join(OUTPUT_DIR, f"{AIRPORT_CODE}_sdf_val.parquet")
+PLY_PATH = os.path.join(OUTPUT_DIR, f"{AIRPORT_CODE}_sdf_points.ply")
 
 
-DB_PATH = "data/raw/openalaqs/LFPO_Project.sqlite"
-
-
-print("Chargement des bâtiments...")
+logger.info("Chargement des bâtiments...")
 gdf = load_buildings(DB_PATH)
+logger.info("Airport code      : %s", AIRPORT_CODE)
+logger.info("Output directory  : %s", OUTPUT_DIR)
 
 
-print("Création des meshes...")
+logger.info("Création des meshes...")
 meshes = extrude_buildings(gdf)
 
 airport_mesh = merge_meshes(meshes)
 
 
-print("Calcul bounding box...")
+logger.info("Calcul bounding box...")
 bounds = gdf.total_bounds
 
 
-print("Sampling surface...")
-surface_points = sample_surface(airport_mesh, 20000)
+logger.info("Sampling surface...")
+surface_points = sample_surface(
+    airport_mesh,
+    config["sampling"]["surface_points"]
+)
 
 
-print("Sampling near surface...")
-near_surface_points = sample_near_surface(surface_points)
+logger.info("Sampling near surface...")
+near_surface_points = sample_near_surface(
+    surface_points,
+    sigma=config["sampling"]["near_surface_noise"]
+)
 
 
-print("Sampling free space...")
-free_space_points = sample_free_space(bounds, 20000)
+logger.info("Sampling free space...")
+free_space_points = sample_free_space(
+    bounds,
+    config["sampling"]["free_space_points"]
+)
 
 
 points = np.vstack((
@@ -49,19 +78,16 @@ points = np.vstack((
 ))
 
 
-print("Calcul SDF...")
-
+logger.info("Calcul SDF...")
 distances = compute_sdf_chunked(
     airport_mesh,
     points,
-    chunk_size=5000
+    chunk_size=config["sdf"]["chunk_size"]
 )
 
 
-print("Normalisation des coordonnées...")
-
+logger.info("Normalisation des coordonnées...")
 points_normalized, center, scale = normalize_points(points)
-
 distances_normalized = distances / scale
 
 
@@ -71,34 +97,38 @@ dataset = np.hstack((
 ))
 
 
-df = pd.DataFrame(
-    dataset,
-    columns=["x", "y", "z", "s"]
+df = pd.DataFrame(dataset, columns=["x", "y", "z", "s"])
+
+logger.info(df.head())
+logger.info("Dataset size : %d", len(df))
+
+
+# Validation du dataset
+validate_sdf_dataset(df)
+
+
+# Split train / validation
+train_df, val_df = train_test_split(
+    df,
+    test_size=1 - TRAIN_SPLIT,
+    random_state=42
 )
 
+logger.info("Train size      : %d", len(train_df))
+logger.info("Validation size : %d", len(val_df))
 
-print(df.head())
-print("Dataset size :", len(df))
+train_df.to_parquet(TRAIN_PATH, index=False)
+val_df.to_parquet(VAL_PATH,   index=False)
 
-
-df.to_parquet(
-    "data/processed/orly_sdf_dataset.parquet",
-    index=False
-)
-
-
-print("Dataset sauvegardé")
-
-print("Center :", center)
-print("Scale :", scale)
+logger.info("Datasets sauvegardés")
+logger.info("Center : %s", center)
+logger.info("Scale  : %s", scale)
 
 
 # Export du nuage de points pour visualisation
-
-ply_path = "data/processed/orly_sdf_points.ply"
+ply_path = PLY_PATH
 
 with open(ply_path, "w") as f:
-
     f.write("ply\n")
     f.write("format ascii 1.0\n")
     f.write(f"element vertex {len(points_normalized)}\n")
@@ -111,4 +141,4 @@ with open(ply_path, "w") as f:
         f.write(f"{p[0]} {p[1]} {p[2]}\n")
 
 
-print("Nuage de points exporté :", ply_path)
+logger.info("Nuage de points exporté : %s", ply_path)
