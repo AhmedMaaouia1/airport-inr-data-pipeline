@@ -1,12 +1,24 @@
 airport:
   code: LFPO
-  database_path: data/raw/openalaqs/LFPO_Project.sqlite
+  database_path: data/raw/openalaqs/LFPO.sqlite
   default_building_height: 15.0
 
+# Extrusion heights for each feature type (in meters)
+features:
+  extrusion_heights:
+    building: 15.0
+    runway: 0.1
+    taxiway: 0.1
+    roadway: 0.05
+    parking: 0.05
+    gate: 0.02
+    track: 0.02
+    point_source: 0.02
+
 sampling:
-  surface_points: 20000
+  surface_points: 333333
   near_surface_noise: 0.02
-  free_space_points: 20000
+  free_space_points: 333333
 
 sdf:
   chunk_size: 5000

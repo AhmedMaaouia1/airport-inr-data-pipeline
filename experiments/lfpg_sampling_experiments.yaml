@@ -1,0 +1,24 @@
+# Sampling configs for LFPG experiments (10% free, 45% near, 45% mid)
+
+lfpg_experiments:
+  - name: lfpg_200k
+    total_points: 200000
+    free_space_points: 20000
+    near_surface_points: 90000
+    near_surface_sigma: 0.02
+    mid_surface_points: 90000
+    mid_surface_sigma: 0.2
+  - name: lfpg_600k
+    total_points: 600000
+    free_space_points: 60000
+    near_surface_points: 270000
+    near_surface_sigma: 0.02
+    mid_surface_points: 270000
+    mid_surface_sigma: 0.2
+  - name: lfpg_1500k
+    total_points: 1500000
+    free_space_points: 150000
+    near_surface_points: 675000
+    near_surface_sigma: 0.02
+    mid_surface_points: 675000
+    mid_surface_sigma: 0.2
